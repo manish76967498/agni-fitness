@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome - {{ site.name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+    <div class="register-box success-box">
+        <div class="success-icon">🎉</div>
+        <h1>Welcome, {{ name }}!</h1>
+        <p>Your registration is complete.</p>
+
+        <div class="success-details">
+            <div><span>Plan</span><strong>{{ plan }}</strong></div>
+            <div><span>Starts</span><strong>{{ start }}</strong></div>
+            <div><span>Valid until</span><strong>{{ expiry }}</strong></div>
+        </div>
+
+        {% if fee %}
+        <div class="amount-due">
+            <span>Membership fee</span>
+            <strong>₹{{ '{:,}'.format(fee) }}</strong>
+        </div>
+        {% endif %}
+
+        <p>Please visit the front desk to pay (cash or UPI) and collect your member card.</p>
+
+        <a href="{{ url_for('home') }}" class="hero-btn primary">Back to Home</a>
+    </div>
+</body>
+
+</html>

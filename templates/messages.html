@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messages - {{ site.name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+    <div class="admin-page">
+        <header class="admin-header">
+            <div>
+                <h1>🏋️ {{ site.name|upper }}</h1>
+                <p>Contact Messages</p>
+            </div>
+            <div>
+                <a href="{{ url_for('admin') }}" class="logout-btn">← Dashboard</a>
+                <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+            </div>
+        </header>
+
+        <div class="admin-container">
+            <div class="members-section">
+                <div class="section-heading">
+                    <h2>Inbox</h2>
+                    <span>{{ messages|length }} message{{ '' if messages|length == 1 else 's' }}</span>
+                </div>
+
+                {% if messages %}
+                {% for m in messages %}
+                <div class="message-card">
+                    <div class="message-head">
+                        <strong>{{ m[1] }}</strong>
+                        <a href="mailto:{{ m[2] }}">{{ m[2] }}</a>
+                        <span>{{ m[4].strftime('%d-%m-%Y %H:%M') if m[4] else '' }}</span>
+                    </div>
+                    <p>{{ m[3] }}</p>
+                </div>
+                {% endfor %}
+                {% else %}
+                <p class="no-members">No messages yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

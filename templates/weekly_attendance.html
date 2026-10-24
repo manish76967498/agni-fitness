@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weekly Attendance - {{ site.name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body class="dash-body">
+
+    <header class="dash-topbar">
+        <div class="dash-brand">
+            <h1>🏋️ {{ site.name|upper }}</h1>
+            <span>Weekly Attendance</span>
+        </div>
+        <nav class="dash-nav">
+            <a href="{{ url_for('today_attendance_page') }}" class="dash-btn">📅 Today</a>
+            <a href="{{ url_for('admin') }}" class="dash-btn primary">← Dashboard</a>
+        </nav>
+    </header>
+
+    <main class="dash-main narrow">
+
+        <section class="dash-stats two">
+            <div class="dash-stat teal">
+                <span class="dash-stat-icon">📊</span>
+                <div><h2>{{ attendance_records|length }}</h2><p>Check-ins this week</p></div>
+            </div>
+            <div class="dash-stat blue">
+                <span class="dash-stat-icon">📅</span>
+                <div><h2>{{ selected_date.strftime("%d %b") }}</h2><p>Selected date</p></div>
+            </div>
+        </section>
+
+        <section class="dash-panel">
+            <div class="dash-panel-head">
+                <div>
+                    <h2>Attendance Records</h2>
+                    <p>Pick a date to see that week</p>
+                </div>
+
+                <form method="GET" action="{{ url_for('weekly_attendance_page') }}" class="search-form">
+                    <input type="date" name="date" value="{{ selected_date.isoformat() }}" required class="date-input">
+                    <button type="submit" class="dash-btn primary">🔍 View</button>
+                </form>
+            </div>
+
+            {% if attendance_records %}
+            <div class="table-scroll">
+                <table class="dash-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Phone</th>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in attendance_records %}
+                        <tr>
+                            <td class="muted">#{{ record[0] }}</td>
+                            <td class="cell-name">{{ record[1] }}</td>
+                            <td>{{ record[2] }}</td>
+                            <td>{{ record[3].strftime('%d %b %Y') }}</td>
+                            <td>{{ record[4] }}</td>
+                            <td><span class="pill green">Present</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="panel-empty">📭 No attendance records for this week.</div>
+            {% endif %}
+        </section>
+
+    </main>
+</body>
+
+</html>

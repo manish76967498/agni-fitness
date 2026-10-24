@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Member Details - {{ site.name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body class="dash-body">
+
+    <header class="dash-topbar">
+        <div class="dash-brand">
+            <h1>🏋️ {{ site.name|upper }}</h1>
+            <span>Member #{{ member[0] }}</span>
+        </div>
+        <nav class="dash-nav">
+            <a href="/edit/{{ member[0] }}" class="dash-btn">✏️ Edit</a>
+            <a href="{{ url_for('admin') }}#members" class="dash-btn primary">← Dashboard</a>
+        </nav>
+    </header>
+
+    <main class="dash-main narrow">
+
+        {% if attendance_already_marked %}
+        <div class="notice warn">⚠️ Attendance has already been marked for this member today.</div>
+        {% endif %}
+
+        <!-- Profile header -->
+        <section class="dash-panel profile-head">
+            <div class="avatar">{{ member[1][:1]|upper }}</div>
+            <div class="profile-info">
+                <h2>{{ member[1] }}</h2>
+                <p>{{ member[2] }} · {{ member[3] }}</p>
+            </div>
+            <div class="profile-status">
+                {% if member[7] == "Active" %}<span class="pill green">Active</span>
+                {% elif member[7] == "Upcoming" %}<span class="pill yellow">Upcoming</span>
+                {% elif member[7] == "Expired" %}<span class="pill red">Expired</span>
+                {% else %}<span class="pill grey">No Membership</span>{% endif %}
+            </div>
+            <div class="profile-actions">
+                {% if today_attendance %}
+                <button class="dash-btn done" disabled>✅ Attendance Marked Today</button>
+                {% else %}
+                <a href="{{ url_for('mark_attendance', id=member[0]) }}" class="dash-btn primary">🟢 Mark Attendance</a>
+                {% endif %}
+            </div>
+        </section>
+
+        <!-- Info grid -->
+        <section class="dash-row even">
+
+            <div class="dash-panel">
+                <div class="dash-panel-head"><div><h2>Personal Information</h2></div></div>
+                <table class="info-table">
+                    <tr><th>Name</th><td>{{ member[1] }}</td></tr>
+                    <tr><th>Email</th><td>{{ member[2] }}</td></tr>
+                    <tr><th>Phone</th><td>{{ member[3] }}</td></tr>
+                </table>
+            </div>
+
+            <div class="dash-panel">
+                <div class="dash-panel-head"><div><h2>Membership</h2></div></div>
+                <table class="info-table">
+                    <tr><th>Plan</th><td>{{ member[4] or "None" }}</td></tr>
+                    <tr><th>Start Date</th><td>{{ member[5].strftime('%d %b %Y') if member[5] else "None" }}</td></tr>
+                    <tr><th>Expiry Date</th><td>{{ member[6].strftime('%d %b %Y') if member[6] else "None" }}</td></tr>
+                    <tr>
+                        <th>Time Left</th>
+                        <td>
+                            {% if member[7] == "Active" %}
+                                {% if member[8] == 0 %}⚠️ Expires today{% else %}{{ member[8] }} days remaining{% endif %}
+                            {% elif member[7] == "Upcoming" %}Starts in {{ member[8] }} days
+                            {% elif member[7] == "Expired" %}Expired
+                            {% else %}-{% endif %}
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+        </section>
+
+        <!-- Payments -->
+        <div id="payments"></div>
+
+        {% with msgs = get_flashed_messages(with_categories=true) %}
+        {% for cat, msg in msgs %}
+        <div class="notice {{ 'ok' if cat == 'ok' else 'warn' }}">{{ msg }}</div>
+        {% endfor %}
+        {% endwith %}
+
+        <section class="dash-stats four">
+            <div class="dash-stat green">
+                <span class="dash-stat-icon">💰</span>
+                <div><h2>₹{{ '{:,}'.format(total_paid) }}</h2><p>Total paid ({{ payment_rows|length }} payment{{ '' if payment_rows|length == 1 else 's' }})</p></div>
+            </div>
+            <div class="dash-stat blue">
+                <span class="dash-stat-icon">🗓️</span>
+                <div><h2>₹{{ '{:,}'.format(paid_last_30) }}</h2><p>Paid in last 30 days</p></div>
+            </div>
+            <div class="dash-stat purple">
+                <span class="dash-stat-icon">🧾</span>
+                <div>
+                    {% if last_payment %}
+                    <h2>₹{{ '{:,}'.format(last_payment[2]) }}</h2>
+                    <p>Last payment · {{ last_payment[5].strftime('%d %b %Y') }}</p>
+                    {% else %}
+                    <h2>None</h2><p>Last payment</p>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="dash-stat {{ 'green' if plan_state == 'paid' else ('orange' if plan_state == 'part' else 'red') }}">
+                <span class="dash-stat-icon">{{ '✅' if plan_state == 'paid' else ('🟠' if plan_state == 'part' else '❗') }}</span>
+                <div>
+                    <h2>{{ 'Paid' if plan_state == 'paid' else ('Part paid' if plan_state == 'part' else 'Not paid') }}</h2>
+                    <p>Current plan: ₹{{ '{:,}'.format(plan_paid) }}{% if plan_price %} of ₹{{ '{:,}'.format(plan_price) }}{% endif %}</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="dash-panel">
+            <div class="dash-panel-head">
+                <div>
+                    <h2>💳 Payment History</h2>
+                    <p>Current plan: <strong>{{ member[4] or 'None' }}</strong>{% if plan_price %} (₹{{ '{:,}'.format(plan_price) }}){% endif %}</p>
+                </div>
+            </div>
+
+            {% if payment_error %}
+            <div class="notice warn">⚠️ Payment history could not be loaded. Technical details: {{ payment_error }}</div>
+            {% endif %}
+
+            {% if payment_rows %}
+            <div class="table-scroll">
+                <table class="dash-table compact">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Plan</th>
+                            <th>Amount</th>
+                            <th>Method</th>
+                            <th>Note</th>
+                            <th class="right">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in payment_rows %}
+                        <tr>
+                            <td>{{ p[5].strftime('%d %b %Y') }}</td>
+                            <td><span class="tag">{{ p[1] or '-' }}</span></td>
+                            <td><strong>₹{{ '{:,}'.format(p[2]) }}</strong></td>
+                            <td>{{ methods.get(p[3], p[3]) }}</td>
+                            <td>{{ p[4] or '-' }}</td>
+                            <td class="right">
+                                <form action="{{ url_for('delete_payment', payment_id=p[0]) }}" method="POST"
+                                    onsubmit="return confirm('Delete this payment record?');">
+                                    <input type="hidden" name="next" value="/view/{{ member[0] }}">
+                                    <button type="submit" class="row-btn delete">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="panel-empty">📭 No payments recorded for this member yet.</div>
+            {% endif %}
+
+            <form action="{{ url_for('add_payment') }}" method="POST" class="inline-form">
+                <strong>Record a payment</strong>
+                <input type="hidden" name="member_id" value="{{ member[0] }}">
+                <input type="hidden" name="next" value="/view/{{ member[0] }}">
+                <input type="number" name="amount" min="1" max="1000000" required placeholder="Amount (₹)" value="{{ plan_price or '' }}">
+                <select name="method">
+                    {% for key, label in methods.items() %}
+                    <option value="{{ key }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+                <input type="date" name="paid_on" value="{{ today }}" max="{{ today }}" required class="date-input">
+                <input type="text" name="note" maxlength="100" placeholder="Note (optional)">
+                <button type="submit" class="dash-btn primary">Save payment</button>
+            </form>
+
+            <p class="reg-note">"Current plan" counts payments dated from 14 days before the plan start date.</p>
+        </section>
+
+        <!-- Attendance -->
+        <section class="dash-stats four">
+            <div class="dash-stat purple">
+                <span class="dash-stat-icon">🏃</span>
+                <div><h2>{{ total_attendance }}</h2><p>Total Attendance</p></div>
+            </div>
+            <div class="dash-stat blue">
+                <span class="dash-stat-icon">📅</span>
+                <div>
+                    <h2>{{ last_attendance_date.strftime('%d %b') if last_attendance_date else '-' }}</h2>
+                    <p>Last Attendance</p>
+                </div>
+            </div>
+            <div class="dash-stat {{ 'green' if regularity.label == 'Regular' else ('orange' if regularity.label == 'Occasional' else 'grey') }}">
+                <span class="dash-stat-icon">📈</span>
+                <div>
+                    <h2>{{ regularity.label }}</h2>
+                    <p>{% if regularity.days %}{{ regularity.visits }} visit day{{ '' if regularity.visits == 1 else 's' }} in {{ regularity.days }} days (~{{ regularity.per_week }}/week){% else %}Attendance habit{% endif %}</p>
+                </div>
+            </div>
+            <div class="dash-stat {{ 'green' if today_attendance else 'grey' }}">
+                <span class="dash-stat-icon">{{ '🟢' if today_attendance else '⚪' }}</span>
+                <div>
+                    <h2>{{ 'Present' if today_attendance else 'Not Marked' }}</h2>
+                    <p>Today's Status</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="dash-panel">
+            <div class="dash-panel-head">
+                <div>
+                    <h2>📅 Attendance History</h2>
+                    <p>Member attendance records</p>
+                </div>
+                <span class="pill grey">{{ attendance_history|length }} records</span>
+            </div>
+
+            {% if attendance_history %}
+            <div class="table-scroll">
+                <table class="dash-table compact">
+                    <thead>
+                        <tr><th>#</th><th>Date</th><th>Time</th><th>Status</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for attendance in attendance_history %}
+                        <tr>
+                            <td class="muted">{{ loop.index }}</td>
+                            <td>{{ attendance[0].strftime('%d %b %Y') }}</td>
+                            <td>{{ attendance[1] }}</td>
+                            <td><span class="pill green">Present</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="panel-empty">📭 This member has no attendance history yet.</div>
+            {% endif %}
+        </section>
+
+    </main>
+</body>
+
+</html>

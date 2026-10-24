@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="{{ site.name }} - strength, cardio, classes and expert trainers. Join today.">
+    <title>{{ site.name }}</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+
+    <nav>
+        <a href="{{ url_for('home') }}" class="logo">{{ site.name|upper }}</a>
+
+        <ul>
+            <li><a href="#home">Home</a></li>
+            <li><a href="#about">About</a></li>
+            <li><a href="#services">Plans</a></li>
+            <li><a href="#trainers">Trainers</a></li>
+            <li><a href="#schedule">Classes</a></li>
+            <li><a href="#contact">Contact</a></li>
+            <li><a href="{{ url_for('login') }}">Admin</a></li>
+        </ul>
+
+        <a href="{{ url_for('register') }}" class="nav-btn">Join Now</a>
+    </nav>
+
+    <!-- HERO -->
+    <section class="hero" id="home">
+        <h1>Build Your Dream Body</h1>
+        <p>Train Hard. Stay Strong.</p>
+
+        <div class="hero-buttons">
+            <a href="{{ url_for('register') }}" class="hero-btn primary">Join Now</a>
+            <a href="#services" class="hero-btn secondary">View Plans</a>
+        </div>
+    </section>
+
+    <!-- STATS STRIP -->
+    <section class="stats-strip">
+        <div><strong>500+</strong><span>Members</span></div>
+        <div><strong>3</strong><span>Expert Trainers</span></div>
+        <div><strong>10+</strong><span>Weekly Classes</span></div>
+        <div><strong>6–9 AM, 7–9 PM</strong><span>Mon–Sat</span></div>
+    </section>
+
+    <!-- ABOUT -->
+    <section class="page-section" id="about">
+        <h2>About Us</h2>
+        <p class="section-sub">Strength, discipline and community under one roof.</p>
+
+        <div class="card-grid">
+            <a href="#services" class="info-card">
+                <span class="card-icon">🏋️</span>
+                <h3>Modern Equipment</h3>
+                <p>Free weights, machines and cardio zones.</p>
+            </a>
+            <a href="#trainers" class="info-card">
+                <span class="card-icon">🧑‍🏫</span>
+                <h3>Expert Trainers</h3>
+                <p>Guidance for beginners and pros alike.</p>
+            </a>
+            <a href="#schedule" class="info-card">
+                <span class="card-icon">🕔</span>
+                <h3>Flexible Hours</h3>
+                <p>Morning and evening batches every day.</p>
+            </a>
+        </div>
+    </section>
+
+    <!-- PLANS -->
+    <section class="page-section alt" id="services">
+        <h2>Membership Plans</h2>
+        <p class="section-sub">Pick a plan to start registering.</p>
+
+        <div class="card-grid four">
+            {% for p in plans %}
+            <a href="{{ url_for('register', plan=p.name) }}" class="plan-card {{ 'featured' if p.featured }}">
+                {% if p.featured %}<span class="badge">Best Value</span>{% endif %}
+                <h3>{{ p.label }}</h3>
+                <div class="price">₹{{ '{:,}'.format(p.price) }}</div>
+                <p class="period">{{ p.period }}</p>
+                <ul class="perks">
+                    {% for perk in p.perks %}<li>✔ {{ perk }}</li>{% endfor %}
+                </ul>
+                <span class="plan-cta">Choose plan →</span>
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- TRAINERS -->
+    <section class="page-section" id="trainers">
+        <h2>Meet Our Trainers</h2>
+        <p class="section-sub">Certified coaches who keep you accountable.</p>
+
+        <div class="card-grid">
+            {% for t in trainers %}
+            <a href="#contact" class="info-card">
+                <span class="card-icon">{{ t.icon }}</span>
+                <h3>{{ t.name }}</h3>
+                <p><strong>{{ t.role }}</strong></p>
+                <p>{{ t.focus }}</p>
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- SCHEDULE -->
+    <section class="page-section alt" id="schedule">
+        <h2>Class Schedule</h2>
+        <p class="section-sub">Sunday is rest day.</p>
+
+        <div class="schedule-wrap">
+            <table class="schedule-table">
+                <thead>
+                    <tr><th>Time</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th></tr>
+                </thead>
+                <tbody>
+                    {% for r in schedule %}
+                    <tr>
+                        <td>{{ r.time }}</td>
+                        <td>{{ r.mon }}</td><td>{{ r.tue }}</td><td>{{ r.wed }}</td>
+                        <td>{{ r.thu }}</td><td>{{ r.fri }}</td><td>{{ r.sat }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <a href="{{ url_for('register') }}" class="hero-btn primary schedule-cta">Join a class</a>
+    </section>
+
+    <!-- BMI -->
+    <section class="page-section" id="bmi">
+        <h2>BMI Calculator</h2>
+        <p class="section-sub">A quick starting point for your goals.</p>
+
+        <div class="bmi-box">
+            <input type="number" id="bmi-height" placeholder="Height (cm)" min="50" max="260">
+            <input type="number" id="bmi-weight" placeholder="Weight (kg)" min="10" max="400">
+            <button type="button" id="bmi-btn">Calculate</button>
+            <p id="bmi-result" aria-live="polite"></p>
+        </div>
+    </section>
+
+    <!-- TESTIMONIALS -->
+    <section class="page-section alt" id="reviews">
+        <h2>What Members Say</h2>
+        <p class="section-sub">Real results from our community.</p>
+
+        <div class="card-grid">
+            {% for t in testimonials %}
+            <div class="info-card static">
+                <span class="card-icon">⭐⭐⭐⭐⭐</span>
+                <p>“{{ t.text }}”</p>
+                <h3>{{ t.name }}</h3>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="page-section" id="faq">
+        <h2>FAQ</h2>
+        <div class="faq">
+            <details>
+                <summary>Can I try before joining?</summary>
+                <p>Yes — walk in or contact us to book a free trial session.</p>
+            </details>
+            <details>
+                <summary>Can I upgrade my plan later?</summary>
+                <p>Yes. Ask at the front desk and we will adjust your membership.</p>
+            </details>
+            <details>
+                <summary>Do you offer personal training?</summary>
+                <p>Yes, one-to-one sessions are available with all our trainers.</p>
+            </details>
+            <details>
+                <summary>What are the timings?</summary>
+                <p>Open daily, with morning and evening batches. See the class schedule above.</p>
+            </details>
+        </div>
+    </section>
+
+    <!-- CONTACT -->
+    <section class="page-section alt" id="contact">
+        <h2>Contact</h2>
+        <p class="section-sub">Questions? Send us a message or walk in.</p>
+
+        <div class="card-grid">
+            <a href="tel:{{ site.phone_link }}" class="info-card">
+                <span class="card-icon">📞</span>
+                <h3>Call Us</h3>
+                <p>{{ site.phone }}</p>
+            </a>
+            <a href="mailto:{{ site.email }}" class="info-card">
+                <span class="card-icon">✉️</span>
+                <h3>Email</h3>
+                <p>{{ site.email }}</p>
+            </a>
+            <a href="{{ site.maps_url }}" target="_blank" rel="noopener" class="info-card">
+                <span class="card-icon">📍</span>
+                <h3>Visit Us</h3>
+                <p>{{ site.address }}</p>
+            </a>
+        </div>
+
+        <p class="open-hours">🕔 {{ site.hours }}</p>
+
+        <form class="contact-form" action="{{ url_for('contact') }}" method="POST">
+            {% if request.args.get('sent') == 'ok' %}
+            <p class="form-msg ok">Thanks! We got your message and will reply soon.</p>
+            {% elif request.args.get('sent') == 'error' %}
+            <p class="form-msg err">Please fill in all fields.</p>
+            {% endif %}
+            <input type="text" name="name" placeholder="Your name" required maxlength="100">
+            <input type="email" name="email" placeholder="Your email" required maxlength="150">
+            <textarea name="message" placeholder="Your message" rows="4" required maxlength="2000"></textarea>
+            <button type="submit">Send Message</button>
+        </form>
+    </section>
+
+    <footer class="site-footer">
+        © {{ site.name }} · {{ site.address }} · <a href="{{ url_for('login') }}">Admin Login</a>
+    </footer>
+
+    <a href="#home" class="to-top" aria-label="Back to top">↑</a>
+
+    <script>
+        document.getElementById("bmi-btn").addEventListener("click", function () {
+            const h = parseFloat(document.getElementById("bmi-height").value) / 100;
+            const w = parseFloat(document.getElementById("bmi-weight").value);
+            const out = document.getElementById("bmi-result");
+            if (!h || !w || h <= 0 || w <= 0) {
+                out.textContent = "Please enter a valid height and weight.";
+                return;
+            }
+            const bmi = w / (h * h);
+            let cat = bmi < 18.5 ? "Underweight" : bmi < 25 ? "Normal" : bmi < 30 ? "Overweight" : "Obese";
+            out.textContent = "Your BMI is " + bmi.toFixed(1) + " (" + cat + "). BMI is only a rough guide.";
+        });
+    </script>
+
+</body>
+
+</html>

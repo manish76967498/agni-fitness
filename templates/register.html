@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - {{ site.name }}</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+</head>
+
+<body>
+
+    <div class="register-box">
+
+        <h1>Gym Registration</h1>
+
+        {% if error %}
+        <p class="pay-error">{{ error }}</p>
+        {% endif %}
+
+        <form action="{{ url_for('register') }}" method="POST">
+
+            <input type="text" name="name" placeholder="Full Name" required value="{{ form.get('name', '') }}"><br><br>
+
+            <input type="email" name="email" placeholder="Email" required value="{{ form.get('email', '') }}"><br><br>
+
+            <input type="tel" name="phone" placeholder="Phone Number" required pattern="[0-9+ \-]{10,15}"
+                title="Enter a valid phone number" value="{{ form.get('phone', '') }}"><br><br>
+
+            <select name="membership" id="membership" required>
+                <option value="">Select Membership</option>
+                {% for p in plans %}
+                <option value="{{ p.name }}" {% if form.get('membership') == p.name %}selected{% endif %}>
+                    {{ p.label }} — ₹{{ '{:,}'.format(p.price) }}
+                </option>
+                {% endfor %}
+            </select>
+
+            <br><br>
+
+            <label for="start_date">Start Date</label>
+
+            <input type="text" id="start_date" name="start_date" placeholder="Select start date" required
+                value="{{ form.get('start_date', '') }}">
+
+            <br><br>
+
+            <button type="submit">Register</button>
+
+        </form>
+
+        <p class="back-link"><a href="{{ url_for('home') }}">← Back to Home</a></p>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+    <script>
+        // Pre-select plan when arriving from the front page (?plan=Yearly)
+        const plan = new URLSearchParams(window.location.search).get("plan");
+        if (plan) {
+            const sel = document.getElementById("membership");
+            if (sel && !sel.value) sel.value = plan;
+        }
+
+        // Calendar picker. If it could not load (no internet), the date can be typed instead.
+        const dateInput = document.getElementById("start_date");
+
+        if (typeof flatpickr === "function") {
+            flatpickr(dateInput, {
+                dateFormat: "d-m-Y",
+                minDate: "today",
+                allowInput: false
+            });
+        } else {
+            dateInput.placeholder = "Type date as DD-MM-YYYY";
+        }
+    </script>
+</body>
+
+</html>

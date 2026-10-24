@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ site.name }} - Admin Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body class="dash-body">
+
+    <!-- ================= TOP BAR ================= -->
+    <header class="dash-topbar">
+        <div class="dash-brand">
+            <h1>🏋️ {{ site.name|upper }}</h1>
+            <span>Admin Dashboard</span>
+        </div>
+
+        <nav class="dash-nav">
+            <a href="{{ url_for('register') }}" class="dash-btn primary">➕ Add Member</a>
+            <a href="{{ url_for('admin_payments') }}" class="dash-btn">💳 Payments</a>
+            <a href="{{ url_for('admin_messages') }}" class="dash-btn">✉️ Messages</a>
+            <a href="{{ url_for('home') }}" class="dash-btn">🌐 Website</a>
+            <a href="{{ url_for('logout') }}" class="dash-btn danger">Logout</a>
+        </nav>
+    </header>
+
+    <main class="dash-main">
+
+        <!-- ================= STAT CARDS ================= -->
+        <section class="dash-stats">
+
+            <a href="{{ url_for('admin', status='all') }}#members" class="dash-stat blue">
+                <span class="dash-stat-icon">👥</span>
+                <div><h2>{{ member_count }}</h2><p>Total Members</p></div>
+            </a>
+
+            <a href="{{ url_for('admin', status='active') }}#members" class="dash-stat green">
+                <span class="dash-stat-icon">🟢</span>
+                <div><h2>{{ active_count }}</h2><p>Active</p></div>
+            </a>
+
+            <a href="{{ url_for('admin', status='expiring') }}#members" class="dash-stat orange">
+                <span class="dash-stat-icon">🟠</span>
+                <div><h2>{{ expiring_count }}</h2><p>Expiring Soon</p></div>
+            </a>
+
+            <a href="{{ url_for('admin', status='expired') }}#members" class="dash-stat red">
+                <span class="dash-stat-icon">🔴</span>
+                <div><h2>{{ expired_count }}</h2><p>Expired</p></div>
+            </a>
+
+            <a href="{{ url_for('today_attendance_page') }}" class="dash-stat purple">
+                <span class="dash-stat-icon">🟣</span>
+                <div><h2>{{ today_attendance }}</h2><p>Today's Attendance</p></div>
+            </a>
+
+            <a href="{{ url_for('weekly_attendance_page') }}" class="dash-stat teal">
+                <span class="dash-stat-icon">📊</span>
+                <div><h2>{{ weekly_attendance }}</h2><p>This Week</p></div>
+            </a>
+
+        </section>
+
+        <!-- ================= MAIN LAYOUT: members (left) + sidebar (right) ================= -->
+        <div class="dash-layout">
+
+            <div class="dash-left">
+        <!-- ================= MEMBERS ================= -->
+        <section class="dash-panel" id="members">
+
+            <div class="dash-panel-head">
+                <div>
+                    <h2>👥 Members</h2>
+                    <p>Search, filter and manage everyone in one place</p>
+                </div>
+                <a href="{{ url_for('register') }}" class="dash-btn primary">➕ Add Member</a>
+            </div>
+
+            <!-- toolbar: filters + search -->
+            <div class="toolbar">
+
+                <div class="chips">
+                    {% set chips = [
+                        ('all', 'All'),
+                        ('active', '🟢 Active'),
+                        ('expiring', '🟠 Expiring'),
+                        ('expired', '🔴 Expired'),
+                        ('upcoming', '🟡 Upcoming')
+                    ] %}
+                    {% for key, label in chips %}
+                    <a href="{{ url_for('admin', status=key, search=search, sort=sort, per_page=per_page) }}#members"
+                        class="chip {{ 'on' if status_filter == key }}">{{ label }}</a>
+                    {% endfor %}
+                </div>
+
+                <form action="{{ url_for('admin') }}#members" method="GET" class="search-form">
+                    <input type="text" name="search" placeholder="Search name, email or phone..." value="{{ search }}">
+                    <input type="hidden" name="status" value="{{ status_filter }}">
+                    <input type="hidden" name="per_page" value="{{ per_page }}">
+
+                    <select name="sort" onchange="this.form.submit()">
+                        <option value="default" {% if sort=="default" %}selected{% endif %}>Sort: Default</option>
+                        <option value="name_asc" {% if sort=="name_asc" %}selected{% endif %}>Name A → Z</option>
+                        <option value="name_desc" {% if sort=="name_desc" %}selected{% endif %}>Name Z → A</option>
+                        <option value="expiry_soon" {% if sort=="expiry_soon" %}selected{% endif %}>Expiry: Soonest</option>
+                        <option value="expiry_late" {% if sort=="expiry_late" %}selected{% endif %}>Expiry: Latest</option>
+                        <option value="newest" {% if sort=="newest" %}selected{% endif %}>Newest Members</option>
+                        <option value="oldest" {% if sort=="oldest" %}selected{% endif %}>Oldest Members</option>
+                    </select>
+
+                    <button type="submit" class="dash-btn primary">🔍 Search</button>
+                    <a href="{{ url_for('admin') }}#members" class="dash-btn">✕ Clear</a>
+                </form>
+
+            </div>
+
+            <!-- table -->
+            <div class="table-scroll">
+                <table class="dash-table">
+                    <thead>
+                        <tr>
+                            <th>Member</th>
+                            <th>Phone</th>
+                            <th>Plan</th>
+                            <th>Expiry</th>
+                            <th>Status</th>
+                            <th>Days</th>
+                            <th class="right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for member in members %}
+                        <tr>
+                            <td>
+                                <div class="cell-name">{{ member[1] }}</div>
+                                <div class="cell-sub">{{ member[2] }}</div>
+                            </td>
+
+                            <td>{{ member[3] }}</td>
+
+                            <td><span class="tag">{{ member[4] }}</span></td>
+
+                            <td>{{ member[6].strftime('%d %b %Y') if member[6] else '-' }}</td>
+
+                            <td>
+                                {% if member[7] == "Active" %}
+                                <span class="pill green">Active</span>
+                                {% elif member[7] == "Upcoming" %}
+                                <span class="pill yellow">Upcoming</span>
+                                {% elif member[7] == "Expired" %}
+                                <span class="pill red">Expired</span>
+                                {% else %}
+                                <span class="pill grey">No Plan</span>
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {% if member[7] == "Active" %}
+                                    {% if member[8] == 0 %}
+                                    <span class="days warn">Expires today</span>
+                                    {% else %}
+                                    <span class="days good">{{ member[8] }} days</span>
+                                    {% endif %}
+                                {% elif member[7] == "Upcoming" %}
+                                <span class="days info">Starts in {{ member[8] }} days</span>
+                                {% elif member[7] == "Expired" %}
+                                <span class="days bad">Expired</span>
+                                {% else %}
+                                <span class="muted">-</span>
+                                {% endif %}
+                            </td>
+
+                            <td class="right">
+                                <div class="row-actions">
+                                    <a href="/view/{{ member[0] }}" class="row-btn view">View</a>
+                                    <a href="/edit/{{ member[0] }}" class="row-btn edit">Edit</a>
+                                    <form action="/delete/{{ member[0] }}" method="POST"
+                                        onsubmit="return confirm('Are you sure you want to delete this member?');">
+                                        <button type="submit" class="row-btn delete">Delete</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7">
+                                <div class="panel-empty">
+                                    🔍 No members match your search or filters.
+                                    <a href="{{ url_for('admin') }}#members">Clear filters</a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- footer: showing text + pagination + per page -->
+            <div class="table-footer">
+
+                <div class="showing">
+                    {% if members %}
+                    {% set first = (page - 1) * per_page + 1 %}
+                    Showing {{ first }}–{{ first + members|length - 1 }} of {{ total_filtered }}
+                    {% else %}
+                    Showing 0 of {{ total_filtered }}
+                    {% endif %}
+                </div>
+
+                <div class="pager">
+                    {% if page > 1 %}
+                    <a href="{{ url_for('admin', page=page-1, per_page=per_page, search=search, status=status_filter, sort=sort) }}#members">←</a>
+                    {% endif %}
+
+                    {% for p in range(1, total_pages + 1) %}
+                    {% if p == page %}
+                    <span class="on">{{ p }}</span>
+                    {% else %}
+                    <a href="{{ url_for('admin', page=p, per_page=per_page, search=search, status=status_filter, sort=sort) }}#members">{{ p }}</a>
+                    {% endif %}
+                    {% endfor %}
+
+                    {% if page < total_pages %}
+                    <a href="{{ url_for('admin', page=page+1, per_page=per_page, search=search, status=status_filter, sort=sort) }}#members">→</a>
+                    {% endif %}
+                </div>
+
+                <form action="{{ url_for('admin') }}#members" method="GET" class="per-page">
+                    <input type="hidden" name="search" value="{{ search }}">
+                    <input type="hidden" name="status" value="{{ status_filter }}">
+                    <input type="hidden" name="sort" value="{{ sort }}">
+                    <input type="hidden" name="page" value="1">
+                    <label for="per_page">Rows</label>
+                    <select name="per_page" id="per_page" onchange="this.form.submit()">
+                        {% for n in [10, 25, 50, 100] %}
+                        <option value="{{ n }}" {% if per_page == n %}selected{% endif %}>{{ n }}</option>
+                        {% endfor %}
+                    </select>
+                </form>
+
+            </div>
+
+        </section>
+            </div>
+
+            <aside class="dash-right">
+            <!-- Membership distribution -->
+            <div class="dash-panel">
+                <div class="dash-panel-head">
+                    <div>
+                        <h2>📊 Membership Distribution</h2>
+                        <p>Current membership plans</p>
+                    </div>
+                </div>
+
+                <div class="dist-list">
+                    {% set plans_dist = [
+                        ('Monthly', monthly_count, 'c1'),
+                        ('3 Months', three_month_count, 'c2'),
+                        ('6 Months', six_month_count, 'c3'),
+                        ('Yearly', yearly_count, 'c4')
+                    ] %}
+                    {% for label, count, cls in plans_dist %}
+                    <div class="dist-row">
+                        <div class="dist-label">
+                            <span>{{ label }}</span>
+                            <strong>{{ count }}</strong>
+                        </div>
+                        <div class="dist-track">
+                            <div class="dist-bar {{ cls }}"
+                                data-percentage="{% if member_count > 0 %}{{ (count / member_count * 100)|round(0) }}{% else %}0{% endif %}">
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Expiring soon -->
+            <div class="dash-panel">
+                <div class="dash-panel-head">
+                    <div>
+                        <h2>⏰ Expiring Soon</h2>
+                        <p>Ending within 30 days</p>
+                    </div>
+                    <span class="pill orange">{{ expiring_members|length }}</span>
+                </div>
+
+                {% if expiring_members %}
+                <div class="table-scroll">
+                    <table class="dash-table compact">
+                        <thead>
+                            <tr>
+                                <th>Member</th>
+                                <th>Left</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for member in expiring_members[:5] %}
+                            {% set days = (member[6] - today).days %}
+                            <tr>
+                                <td>
+                                    <div class="cell-name">{{ member[1] }}</div>
+                                    <div class="cell-sub">{{ member[4] }} · {{ member[6].strftime('%d %b') }}</div>
+                                </td>
+                                <td>
+                                    {% if days == 0 %}
+                                    <span class="pill red">Today</span>
+                                    {% else %}
+                                    <span class="pill orange">{{ days }}d</span>
+                                    {% endif %}
+                                </td>
+                                <td class="right"><a href="/view/{{ member[0] }}" class="row-btn view">View</a></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if expiring_members|length > 5 %}
+                <a href="{{ url_for('admin', status='expiring') }}#members" class="panel-link">
+                    View all {{ expiring_members|length }} →
+                </a>
+                {% endif %}
+
+                {% else %}
+                <div class="panel-empty">✅ Nothing expiring within 30 days.</div>
+                {% endif %}
+            </div>
+            </aside>
+
+        </div>
+
+    </main>
+
+    <script>
+        // Membership distribution bars
+        document.querySelectorAll(".dist-bar").forEach(function (bar) {
+            bar.style.width = bar.dataset.percentage + "%";
+        });
+
+        // Keep the page where the admin was after delete / edit / filter actions
+        (function () {
+            const key = "adminScroll";
+            document.addEventListener("submit", function () { sessionStorage.setItem(key, window.scrollY); });
+            window.addEventListener("load", function () {
+                const saved = sessionStorage.getItem(key);
+                if (saved !== null && !location.hash) {
+                    window.scrollTo(0, parseInt(saved, 10));
+                }
+                sessionStorage.removeItem(key);
+            });
+        })();
+    </script>
+
+</body>
+
+</html>

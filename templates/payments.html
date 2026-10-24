@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payments - {{ site.name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body class="dash-body">
+
+    <header class="dash-topbar">
+        <div class="dash-brand">
+            <h1>🏋️ {{ site.name|upper }}</h1>
+            <span>Payments</span>
+        </div>
+        <nav class="dash-nav">
+            <a href="{{ url_for('admin_messages') }}" class="dash-btn">✉️ Messages</a>
+            <a href="{{ url_for('admin') }}" class="dash-btn primary">← Dashboard</a>
+        </nav>
+    </header>
+
+    <main class="dash-main narrow">
+
+        {% with msgs = get_flashed_messages(with_categories=true) %}
+        {% for cat, msg in msgs %}
+        <div class="notice {{ 'ok' if cat == 'ok' else 'warn' }}">{{ msg }}</div>
+        {% endfor %}
+        {% endwith %}
+
+        {% if error %}
+        <div class="notice warn">⚠️ The payments data could not be loaded. Technical details: {{ error }}</div>
+        {% endif %}
+
+        <!-- totals -->
+        <section class="dash-stats four">
+            <div class="dash-stat green">
+                <span class="dash-stat-icon">📅</span>
+                <div><h2>₹{{ '{:,}'.format(today_total) }}</h2><p>Collected today</p></div>
+            </div>
+            <div class="dash-stat blue">
+                <span class="dash-stat-icon">💰</span>
+                <div><h2>₹{{ '{:,}'.format(month_total) }}</h2><p>{{ month_label }}</p></div>
+            </div>
+            <div class="dash-stat orange">
+                <span class="dash-stat-icon">💵</span>
+                <div><h2>₹{{ '{:,}'.format(cash_total) }}</h2><p>Cash in {{ month_label }}</p></div>
+            </div>
+            <div class="dash-stat purple">
+                <span class="dash-stat-icon">📱</span>
+                <div><h2>₹{{ '{:,}'.format(upi_total) }}</h2><p>UPI in {{ month_label }}</p></div>
+            </div>
+        </section>
+
+        <!-- record a payment -->
+        <section class="dash-panel">
+            <div class="dash-panel-head">
+                <div>
+                    <h2>➕ Record a Payment</h2>
+                    <p>Use this when a member pays at the gym (cash or UPI)</p>
+                </div>
+            </div>
+
+            <form action="{{ url_for('add_payment') }}" method="POST" class="inline-form">
+                <input type="hidden" name="next" value="/admin/payments">
+
+                <select name="member_id" id="member-select" required>
+                    <option value="">Select member</option>
+                    {% for m in members %}
+                    <option value="{{ m.id }}" data-price="{{ m.price }}">{{ m.name }} · {{ m.phone }} · {{ m.plan }}</option>
+                    {% endfor %}
+                </select>
+
+                <input type="number" name="amount" id="amount-input" min="1" max="1000000" required placeholder="Amount (₹)">
+
+                <select name="method">
+                    {% for key, label in methods.items() %}
+                    <option value="{{ key }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+
+                <input type="date" name="paid_on" value="{{ today }}" max="{{ today }}" required class="date-input">
+
+                <input type="text" name="note" maxlength="100" placeholder="Note (optional)">
+
+                <button type="submit" class="dash-btn primary">Save payment</button>
+            </form>
+        </section>
+
+        <!-- list -->
+        <section class="dash-panel">
+            <div class="dash-panel-head">
+                <div>
+                    <h2>💳 Payments in {{ month_label }}</h2>
+                    <p>All-time collected: ₹{{ '{:,}'.format(all_time) }}</p>
+                </div>
+
+                <form method="GET" action="{{ url_for('admin_payments') }}" class="search-form">
+                    <input type="month" name="month" value="{{ month }}" class="date-input" onchange="this.form.submit()">
+                </form>
+            </div>
+
+            {% if payments %}
+            <div class="table-scroll">
+                <table class="dash-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Member</th>
+                            <th>Plan</th>
+                            <th>Amount</th>
+                            <th>Method</th>
+                            <th>Note</th>
+                            <th class="right">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in payments %}
+                        <tr>
+                            <td>{{ p[7].strftime('%d %b %Y') }}</td>
+                            <td>
+                                {% if p[2] == '(deleted member)' %}
+                                <span class="muted">{{ p[2] }}</span>
+                                {% else %}
+                                <a class="cell-name link" href="/view/{{ p[1] }}#payments">{{ p[2] }}</a>
+                                {% endif %}
+                            </td>
+                            <td><span class="tag">{{ p[3] or '-' }}</span></td>
+                            <td><strong>₹{{ '{:,}'.format(p[4]) }}</strong></td>
+                            <td>{{ methods.get(p[5], p[5]) }}</td>
+                            <td>{{ p[6] or '-' }}</td>
+                            <td class="right">
+                                <form action="{{ url_for('delete_payment', payment_id=p[0]) }}" method="POST"
+                                    onsubmit="return confirm('Delete this payment record?');">
+                                    <input type="hidden" name="next" value="/admin/payments">
+                                    <button type="submit" class="row-btn delete">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="panel-empty">📭 No payments recorded in {{ month_label }}.</div>
+            {% endif %}
+        </section>
+
+    </main>
+
+    <script>
+        // fill the amount with the member's plan price (you can still change it)
+        var sel = document.getElementById("member-select");
+        var amt = document.getElementById("amount-input");
+        sel.addEventListener("change", function () {
+            var price = sel.options[sel.selectedIndex].dataset.price;
+            if (price) { amt.value = price; }
+        });
+    </script>
+</body>
+
+</html>
