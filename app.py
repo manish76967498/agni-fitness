@@ -49,9 +49,11 @@ Session(app)
 
 db = mysql.connector.connect(
     host=os.getenv("MYSQL_HOST"),
+    port=int(os.getenv("MYSQL_PORT", "21481")),
     user=os.getenv("MYSQL_USER"),
     password=os.getenv("MYSQL_PASSWORD"),
-    database=os.getenv("MYSQL_DATABASE")
+    database=os.getenv("MYSQL_DATABASE"),
+    ssl_disabled=False
 )
 cursor = db.cursor()
 
